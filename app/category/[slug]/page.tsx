@@ -31,6 +31,7 @@ export default function CategoryPage({
 }) {
   const [slug, setSlug] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -84,11 +85,15 @@ export default function CategoryPage({
     return () => controller.abort();
   }, [slug]);
 
+  const filteredProducts = products.filter((product) =>
+    product.nameBn.toLowerCase().includes(search.trim().toLowerCase())
+  );
+
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900">
       <header className="bg-green-700 text-white shadow-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between p-5">
-          <a href="/" className="text-2xl font-extrabold">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 p-5">
+          <a href="/" className="text-xl font-extrabold sm:text-2xl">
             🛒 Bazar-Dor
           </a>
           <a
@@ -119,6 +124,28 @@ export default function CategoryPage({
           </p>
         </div>
 
+        {!loading && !error && products.length > 0 && (
+          <div className="mb-7">
+            <label
+              htmlFor="product-search"
+              className="mb-2 block font-bold text-gray-800"
+            >
+              পণ্য খুঁজুন
+            </label>
+            <input
+              id="product-search"
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="পণ্যের নাম লিখুন..."
+              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-100"
+            />
+            <p className="mt-2 text-sm text-gray-500">
+              পাওয়া গেছে: {filteredProducts.length}টি পণ্য
+            </p>
+          </div>
+        )}
+
         {loading ? (
           <p className="py-16 text-center text-lg font-bold text-green-700">
             পণ্য লোড হচ্ছে...
@@ -127,18 +154,20 @@ export default function CategoryPage({
           <p className="rounded-xl bg-red-50 p-5 text-center text-red-700">
             {error}
           </p>
-        ) : products.length === 0 ? (
+        ) : filteredProducts.length === 0 ? (
           <p className="rounded-xl bg-yellow-50 p-8 text-center text-yellow-800">
-            এই ক্যাটাগরিতে কোনো পণ্য পাওয়া যায়নি।
+            {search
+              ? "এই নামে কোনো পণ্য পাওয়া যায়নি। অন্য নাম দিয়ে খুঁজুন।"
+              : "এই ক্যাটাগরিতে কোনো পণ্য পাওয়া যায়নি।"}
           </p>
         ) : (
           <>
             <h2 className="mb-5 text-2xl font-bold">
-              সব পণ্য ({products.length})
+              সব পণ্য ({filteredProducts.length})
             </h2>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <a
                   key={product.id}
                   href={`/product/${product.slug}`}
