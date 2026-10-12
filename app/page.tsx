@@ -22,16 +22,13 @@ type Product = {
   };
 };
 
-const API_URL =
-  "https://openapi.programming-hero.com/api/bazardor";
+const API_URL = "https://openapi.programming-hero.com/api/bazardor";
 
 const taka = (value: number) =>
   new Intl.NumberFormat("bn-BD").format(value);
 
 function normalizeProducts(data: unknown): Product[] {
-  if (Array.isArray(data)) {
-    return data as Product[];
-  }
+  if (Array.isArray(data)) return data as Product[];
 
   if (data && typeof data === "object") {
     const result = data as {
@@ -39,13 +36,11 @@ function normalizeProducts(data: unknown): Product[] {
       data?: unknown;
     };
 
-    if (Array.isArray(result.products)) {
+    if (Array.isArray(result.products))
       return result.products as Product[];
-    }
 
-    if (Array.isArray(result.data)) {
+    if (Array.isArray(result.data))
       return result.data as Product[];
-    }
   }
 
   return [];
@@ -66,18 +61,16 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
 
     async function loadProducts() {
       try {
-        setLoading(true);
-        setError("");
-
         const response = await fetch(`${API_URL}/products`, {
-          signal: controller.signal,
           cache: "no-store",
+          signal: controller.signal,
         });
 
         if (!response.ok) {
@@ -85,20 +78,15 @@ export default function Home() {
         }
 
         const data: unknown = await response.json();
-        const productList = normalizeProducts(data);
+        const list = normalizeProducts(data);
 
-        if (productList.length === 0) {
-          throw new Error(
-            "API response-এ product list পাওয়া যায়নি।"
-          );
+        if (list.length === 0) {
+          throw new Error("কোনো product পাওয়া যায়নি।");
         }
 
-        setProducts(productList);
+        setProducts(list);
       } catch (err) {
-        if (
-          err instanceof Error &&
-          err.name === "AbortError"
-        ) {
+        if (err instanceof Error && err.name === "AbortError") {
           return;
         }
 
@@ -119,14 +107,38 @@ export default function Home() {
     return () => controller.abort();
   }, []);
 
-  const rising = products
-    .filter((product) => product.change?.dir === "up")
-    .sort((a, b) => b.change.pct - a.change.pct)
+  const query = search.trim().toLowerCase();
+
+  const filteredProducts = products.filter((product) => {
+    const text = [
+      product.nameBn,
+      product.category,
+      product.categoryNameBn,
+      product.slug,
+      product.unit,
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return text.includes(query);
+  });
+
+  const rising = filteredProducts
+    .filter((p) => p.change?.dir === "up")
+    .sort(
+      (a, b) =>
+        Number(b.change?.pct ?? 0) -
+        Number(a.change?.pct ?? 0)
+    )
     .slice(0, 6);
 
-  const falling = products
-    .filter((product) => product.change?.dir === "down")
-    .sort((a, b) => a.change.pct - b.change.pct)
+  const falling = filteredProducts
+    .filter((p) => p.change?.dir === "down")
+    .sort(
+      (a, b) =>
+        Number(a.change?.pct ?? 0) -
+        Number(b.change?.pct ?? 0)
+    )
     .slice(0, 6);
 
   return (
@@ -166,20 +178,20 @@ export default function Home() {
           <div className="flex gap-2">
             <a
               href="/signin"
-              className="rounded-lg border border-[#245c3a] px-4 py-2 text-sm font-semibold text-[#245c3a] transition hover:bg-green-50"
+              className="rounded-lg border border-[#245c3a] px-4 py-2 text-sm font-semibold text-[#245c3a] hover:bg-green-50"
             >
               সাইন ইন
             </a>
             <a
               href="/signup"
-              className="rounded-lg bg-[#245c3a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#19472c]"
+              className="rounded-lg bg-[#245c3a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#19472c]"
             >
               সাইন আপ
             </a>
           </div>
         </div>
 
-        <div className="overflow-hidden bg-[#245c3a] py-2 text-sm text-white">
+        <div className="bg-[#245c3a] py-2 text-sm text-white">
           <p className="mx-auto max-w-7xl px-5">
             🛒 আজকের বাজারদর — প্রয়োজনীয় পণ্যের দাম এক নজরে
           </p>
@@ -207,7 +219,7 @@ export default function Home() {
 
           <a
             href="#সব-পণ্য"
-            className="mt-7 inline-block rounded-xl bg-[#245c3a] px-6 py-3 font-semibold text-white transition hover:bg-[#19472c]"
+            className="mt-7 inline-block rounded-xl bg-[#245c3a] px-6 py-3 font-semibold text-white hover:bg-[#19472c]"
           >
             আজকের দাম দেখুন ↓
           </a>
@@ -219,9 +231,7 @@ export default function Home() {
             alt="Bazar-Dor fresh market banner"
             className="absolute inset-0 h-full w-full object-cover"
           />
-
           <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
-
           <div className="absolute inset-x-0 bottom-0 p-6 text-white md:p-8">
             <p className="text-xl font-bold md:text-2xl">
               প্রতিদিনের বাজার, এখন আরও সহজ
@@ -233,14 +243,50 @@ export default function Home() {
         </div>
       </section>
 
-      <section
-        id="ক্যাটাগরি"
-        className="mx-auto max-w-7xl px-5 py-8"
-      >
+      <section className="mx-auto max-w-7xl px-5 py-6">
+        <div className="rounded-2xl border border-[#e8e3d8] bg-white p-5 shadow-sm md:p-7">
+          <label
+            htmlFor="product-search"
+            className="mb-4 block text-xl font-extrabold text-[#245c3a] md:text-2xl"
+          >
+            🔎 আপনার প্রয়োজনীয় পণ্য খুঁজুন
+          </label>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <input
+              id="product-search"
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="পণ্যের নাম লিখুন, যেমন: চাল, ডাল, তেল..."
+              className="w-full flex-1 rounded-xl border border-[#d8e2d4] bg-[#fafcf8] px-4 py-3 text-base text-[#25291f] outline-none placeholder:text-gray-400 focus:border-[#43804f] focus:ring-2 focus:ring-[#43804f]/20"
+            />
+
+            {search.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="rounded-xl border border-[#245c3a] px-5 py-3 font-semibold text-[#245c3a] hover:bg-[#edf4e8]"
+              >
+                মুছে ফেলুন ✕
+              </button>
+            )}
+          </div>
+
+          <p className="mt-3 text-sm text-gray-500">
+            {loading
+              ? "পণ্যের তথ্য লোড হচ্ছে..."
+              : query
+                ? `মিলেছে ${taka(filteredProducts.length)}টি পণ্য`
+                : `মোট ${taka(products.length)}টি পণ্য`}
+          </p>
+        </div>
+      </section>
+
+      <section id="ক্যাটাগরি" className="mx-auto max-w-7xl px-5 py-8">
         <p className="text-sm font-semibold text-[#43804f]">
           সহজে খুঁজে নিন
         </p>
-
         <h2 className="mb-6 mt-2 text-2xl font-extrabold md:text-3xl">
           🛒 পণ্য খুঁজুন ক্যাটাগরি অনুযায়ী
         </h2>
@@ -250,16 +296,14 @@ export default function Home() {
             <a
               key={category.slug}
               href={`/category/${category.slug}`}
-              className="group rounded-2xl border border-[#e8e3d8] bg-white p-5 text-center shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#245c3a] hover:bg-[#edf4e8] hover:shadow-lg"
+              className="group rounded-2xl border border-[#e8e3d8] bg-white p-5 text-center shadow-sm transition hover:-translate-y-1 hover:border-[#245c3a] hover:bg-[#edf4e8] hover:shadow-lg"
             >
-              <span className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#edf4e8] text-4xl transition group-hover:scale-110">
+              <span className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#edf4e8] text-4xl">
                 {category.icon}
               </span>
-
-              <h3 className="mt-3 font-bold text-[#245c3a] group-hover:text-[#43804f]">
+              <h3 className="mt-3 font-bold text-[#245c3a]">
                 {category.name}
               </h3>
-
               <p className="mt-1 text-xs text-gray-500">
                 পণ্য দেখুন →
               </p>
@@ -278,7 +322,6 @@ export default function Home() {
               />
             ))}
           </div>
-
           <p className="mt-5 text-center text-gray-500">
             পণ্যের দাম লোড হচ্ছে...
           </p>
@@ -288,46 +331,62 @@ export default function Home() {
           <p className="font-semibold text-red-700">
             পণ্যের তথ্য লোড করা যায়নি।
           </p>
-
           <p className="mt-2 break-words text-sm text-gray-600">
             {error}
           </p>
-
           <button
             onClick={() => window.location.reload()}
-            className="mt-5 rounded-lg bg-[#245c3a] px-5 py-3 font-semibold text-white transition hover:bg-[#19472c]"
+            className="mt-5 rounded-lg bg-[#245c3a] px-5 py-3 font-semibold text-white hover:bg-[#19472c]"
           >
             আবার চেষ্টা করুন
           </button>
         </section>
+      ) : query && filteredProducts.length === 0 ? (
+        <section className="mx-auto max-w-7xl px-5 py-12 text-center">
+          <div className="rounded-2xl border border-[#e8e3d8] bg-white p-8">
+            <p className="text-3xl">🔎</p>
+            <h2 className="mt-3 text-xl font-bold">
+              কোনো পণ্য পাওয়া যায়নি
+            </h2>
+            <p className="mt-2 text-gray-500">
+              অন্য নাম দিয়ে খুঁজে দেখো।
+            </p>
+            <button
+              onClick={() => setSearch("")}
+              className="mt-4 rounded-lg bg-[#245c3a] px-5 py-3 font-semibold text-white hover:bg-[#19472c]"
+            >
+              সব পণ্য দেখুন
+            </button>
+          </div>
+        </section>
       ) : (
         <>
-          <ProductSection
-            id="দাম-বাড়ছে"
-            title="📈 যেসব পণ্যের দাম বাড়ছে"
-            products={rising}
-          />
-
-          <ProductSection
-            id="দাম-কমছে"
-            title="📉 যেসব পণ্যের দাম কমছে"
-            products={falling}
-          />
+          {!query && (
+            <>
+              <ProductSection
+                id="দাম-বাড়ছে"
+                title="📈 যেসব পণ্যের দাম বাড়ছে"
+                products={rising}
+              />
+              <ProductSection
+                id="দাম-কমছে"
+                title="📉 যেসব পণ্যের দাম কমছে"
+                products={falling}
+              />
+            </>
+          )}
 
           <ProductSection
             id="সব-পণ্য"
-            title="🛍️ আজকের সব পণ্যের দাম"
-            products={products}
+            title={query ? "🔎 সার্চের ফলাফল" : "🛍️ আজকের সব পণ্যের দাম"}
+            products={filteredProducts}
           />
         </>
       )}
 
       <footer className="mt-12 bg-[#193d29] px-5 py-8 text-white">
         <div className="mx-auto flex max-w-7xl flex-col justify-between gap-4 text-sm md:flex-row">
-          <p>
-            বাজার দর — প্রয়োজনীয় পণ্যের দাম এক নজরে।
-          </p>
-
+          <p>বাজার দর — প্রয়োজনীয় পণ্যের দাম এক নজরে।</p>
           <p className="text-gray-300">
             সকল দাম সম্ভাব্য; বাজার অবস্থার ওপর নির্ভর করে পরিবর্তিত হয়।
           </p>
@@ -369,24 +428,21 @@ function ProductSection({
                 className="rounded-2xl border border-[#e8e3d8] bg-white p-5 transition hover:-translate-y-1 hover:border-[#c6d9c6] hover:shadow-lg"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <span className="text-4xl">
-                    {product.image}
-                  </span>
-
+                  <span className="text-4xl">{product.image}</span>
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold ${
                       direction === "up"
                         ? "bg-red-100 text-red-700"
                         : direction === "down"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-600"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-600"
                     }`}
                   >
                     {direction === "up"
                       ? "▲"
                       : direction === "down"
-                      ? "▼"
-                      : "—"}{" "}
+                        ? "▼"
+                        : "—"}{" "}
                     {taka(Math.abs(percentage))}%
                   </span>
                 </div>
@@ -394,11 +450,9 @@ function ProductSection({
                 <p className="mt-4 text-sm text-gray-500">
                   {product.categoryIcon} {product.categoryNameBn}
                 </p>
-
                 <h3 className="mt-1 text-xl font-bold">
                   {product.nameBn}
                 </h3>
-
                 <p className="mt-1 text-sm text-gray-500">
                   প্রতি {product.unit}
                 </p>
@@ -408,12 +462,10 @@ function ProductSection({
                     <p className="text-sm text-gray-500">
                       আজকের দাম
                     </p>
-
                     <p className="text-2xl font-extrabold text-[#245c3a]">
                       ৳{taka(product.today)}
                     </p>
                   </div>
-
                   <span className="text-sm font-semibold text-[#43804f]">
                     বিস্তারিত →
                   </span>
