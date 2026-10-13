@@ -22,6 +22,8 @@ type Product = {
   };
 };
 
+type SortOption = "default" | "low-high" | "high-low";
+
 const API_URL = "https://openapi.programming-hero.com/api/bazardor";
 
 export default function CategoryPage({
@@ -32,6 +34,7 @@ export default function CategoryPage({
   const [slug, setSlug] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("default");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -85,9 +88,15 @@ export default function CategoryPage({
     return () => controller.abort();
   }, [slug]);
 
-  const filteredProducts = products.filter((product) =>
-    product.nameBn.toLowerCase().includes(search.trim().toLowerCase())
-  );
+  const filteredProducts = products
+    .filter((product) =>
+      product.nameBn.toLowerCase().includes(search.trim().toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sortBy === "low-high") return a.today - b.today;
+      if (sortBy === "high-low") return b.today - a.today;
+      return 0;
+    });
 
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900">
@@ -96,6 +105,7 @@ export default function CategoryPage({
           <a href="/" className="text-xl font-extrabold sm:text-2xl">
             🛒 Bazar-Dor
           </a>
+
           <a
             href="/"
             className="rounded-lg bg-white px-4 py-2 font-bold text-green-800 hover:bg-green-100"
@@ -114,52 +124,112 @@ export default function CategoryPage({
         </button>
 
         <div className="mb-8 rounded-2xl bg-gradient-to-r from-green-700 to-emerald-500 p-7 text-white shadow-lg">
-          <p className="mb-2 text-sm text-green-100">BAZAR-DOR / CATEGORY</p>
+          <p className="mb-2 text-sm text-green-100">
+            BAZAR-DOR / CATEGORY
+          </p>
+
           <h1 className="text-3xl font-extrabold sm:text-4xl">
             {products[0]?.categoryIcon || "🛍️"}{" "}
             {products[0]?.categoryNameBn || slug}
           </h1>
+
           <p className="mt-2 text-green-50">
             বাজারের পণ্যের দাম এক জায়গায় দেখো।
           </p>
         </div>
 
         {!loading && !error && products.length > 0 && (
-          <div className="mb-7">
-            <label
-              htmlFor="product-search"
-              className="mb-2 block font-bold text-gray-800"
-            >
-              পণ্য খুঁজুন
-            </label>
-            <input
-              id="product-search"
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="পণ্যের নাম লিখুন..."
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-100"
-            />
-            <p className="mt-2 text-sm text-gray-500">
+          <div className="mb-7 grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="product-search"
+                className="mb-2 block font-bold text-gray-800"
+              >
+                পণ্য খুঁজুন
+              </label>
+
+              <input
+                id="product-search"
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="পণ্যের নাম লিখুন..."
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-100"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="sort-products"
+                className="mb-2 block font-bold text-gray-800"
+              >
+                Sort By / দাম অনুযায়ী সাজান
+              </label>
+
+              <select
+                id="sort-products"
+                value={sortBy}
+                onChange={(event) =>
+                  setSortBy(event.target.value as SortOption)
+                }
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-100"
+              >
+                <option value="default">Default Sorting</option>
+                <option value="low-high">Price: Low to High</option>
+                <option value="high-low">Price: High to Low</option>
+              </select>
+            </div>
+
+            <p className="text-sm text-gray-500 sm:col-span-2">
               পাওয়া গেছে: {filteredProducts.length}টি পণ্য
             </p>
           </div>
         )}
 
         {loading ? (
-          <p className="py-16 text-center text-lg font-bold text-green-700">
-            পণ্য লোড হচ্ছে...
-          </p>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map((item) => (
+              <div
+                key={item}
+                className="animate-pulse overflow-hidden rounded-2xl border border-gray-200 bg-white"
+              >
+                <div className="h-48 bg-gray-200" />
+                <div className="space-y-3 p-5">
+                  <div className="h-4 w-1/3 rounded bg-gray-200" />
+                  <div className="h-6 w-2/3 rounded bg-gray-200" />
+                  <div className="h-4 w-1/2 rounded bg-gray-200" />
+                  <div className="h-8 w-1/3 rounded bg-gray-200" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : error ? (
-          <p className="rounded-xl bg-red-50 p-5 text-center text-red-700">
-            {error}
-          </p>
+          <div className="rounded-xl bg-red-50 p-5 text-center text-red-700">
+            <p>{error}</p>
+            <button
+              onClick={() => setSlug((current) => current)}
+              className="mt-3 rounded-lg bg-red-100 px-4 py-2 font-bold hover:bg-red-200"
+            >
+              আবার চেষ্টা করুন
+            </button>
+          </div>
         ) : filteredProducts.length === 0 ? (
-          <p className="rounded-xl bg-yellow-50 p-8 text-center text-yellow-800">
-            {search
-              ? "এই নামে কোনো পণ্য পাওয়া যায়নি। অন্য নাম দিয়ে খুঁজুন।"
-              : "এই ক্যাটাগরিতে কোনো পণ্য পাওয়া যায়নি।"}
-          </p>
+          <div className="rounded-xl bg-yellow-50 p-8 text-center text-yellow-800">
+            <p>
+              {search
+                ? "এই নামে কোনো পণ্য পাওয়া যায়নি। অন্য নাম দিয়ে খুঁজুন।"
+                : "এই ক্যাটাগরিতে কোনো পণ্য পাওয়া যায়নি।"}
+            </p>
+
+            {!search && (
+              <a
+                href="/"
+                className="mt-4 inline-block rounded-lg bg-green-700 px-5 py-3 font-bold text-white hover:bg-green-800"
+              >
+                সব পণ্য দেখুন
+              </a>
+            )}
+          </div>
         ) : (
           <>
             <h2 className="mb-5 text-2xl font-bold">

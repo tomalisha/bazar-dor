@@ -3,7 +3,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 
 type Category = {
   id?: number;
@@ -23,11 +24,6 @@ type Product = {
   yesterday: number;
 };
 
-type AuthUser = {
-  name?: string;
-  email?: string;
-};
-
 const API_URL = "https://api.abcz.workers.dev/api/bazardor";
 
 function getList<T>(value: unknown): T[] {
@@ -38,7 +34,9 @@ function getList<T>(value: unknown): T[] {
 
     for (const key of ["data", "products", "categories", "result"]) {
       const nested = obj[key];
+
       if (Array.isArray(nested)) return nested as T[];
+
       if (nested && typeof nested === "object") {
         const found = getList<T>(nested);
         if (found.length) return found;
@@ -59,7 +57,8 @@ function getChange(product: Product) {
 
   const today = Number(product.today) || 0;
   const yesterday = Number(product.yesterday) || 0;
-  const pct = yesterday > 0 ? ((today - yesterday) / yesterday) * 100 : 0;
+  const pct =
+    yesterday > 0 ? ((today - yesterday) / yesterday) * 100 : 0;
 
   return {
     dir: pct > 0 ? "up" : pct < 0 ? "down" : "flat",
@@ -68,12 +67,15 @@ function getChange(product: Product) {
 }
 
 export default function Navbar() {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const { data: session, isPending } = authClient.useSession();
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [date, setDate] = useState("");
-  const [authLoading, setAuthLoading] = useState(true);
+  const [signingOut, setSigningOut] = useState(false);
+
   const pathname = usePathname();
+  const router = useRouter();
+  const user = session?.user;
 
   useEffect(() => {
     setDate(
@@ -100,30 +102,31 @@ export default function Navbar() {
       })
       .then((data) => setProducts(getList<Product>(data)))
       .catch(() => setProducts([]));
-
-    fetch("/api/auth/get-session", {
-      credentials: "include",
-      cache: "no-store",
-    })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => setUser(data?.user ?? null))
-      .catch(() => setUser(null))
-      .finally(() => setAuthLoading(false));
   }, []);
 
   async function handleSignOut() {
+    setSigningOut(true);
+
     try {
-      await fetch("/api/auth/sign-out", {
-        method: "POST",
-        credentials: "include",
-      });
+      const result = await authClient.signOut();
+
+      if (result.error) {
+        alert("লগআউট করা যায়নি। আবার চেষ্টা করো।");
+        return;
+      }
+
+      router.replace("/");
+      router.refresh();
+    } catch {
+      alert("লগআউট করার সময় সমস্যা হয়েছে। আবার চেষ্টা করো।");
     } finally {
-      window.location.href = "/";
+      setSigningOut(false);
     }
   }
 
   const tickerProducts = products.filter(
-    (product) => product.nameBn && Number.isFinite(Number(product.today))
+    (product) =>
+      product.nameBn && Number.isFinite(Number(product.today))
   );
 
   return (
@@ -140,38 +143,45 @@ export default function Navbar() {
         </Link>
 
         <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-          {!authLoading &&
-            (user ? (
-              <>
-                <Link
-                  href="/profile"
-                  className="rounded-lg border border-[#245c3a] px-3 py-2 text-[#245c3a]"
-                >
-                  {user.name || user.email || "প্রোফাইল"}
-                </Link>
-                <button
-                  onClick={handleSignOut}
-                  className="rounded-lg bg-red-600 px-3 py-2 text-white hover:bg-red-700"
-                >
-                  লগআউট
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/signin"
-                  className="rounded-lg border border-[#245c3a] px-3 py-2 text-[#245c3a]"
-                >
-                  সাইন ইন
-                </Link>
-                <Link
-                  href="/signup"
-                  className="rounded-lg bg-[#245c3a] px-3 py-2 text-white hover:bg-[#19472c]"
-                >
-                  সাইন আপ
-                </Link>
-              </>
-            ))}
+          {isPending ? (
+            <span className="px-3 py-2 text-gray-500">
+              অ্যাকাউন্ট লোড হচ্ছে...
+            </span>
+          ) : user ? (
+            <>
+              <Link
+                href="/profile"
+                className="max-w-48 truncate rounded-lg border border-[#245c3a] px-3 py-2 text-[#245c3a]"
+              >
+                {user.name || user.email || "প্রোফাইল"}
+              </Link>
+
+              <button
+                type="button"
+                onClick={handleSignOut}
+                disabled={signingOut}
+                className="rounded-lg bg-red-600 px-3 py-2 text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {signingOut ? "লগআউট হচ্ছে..." : "লগআউট"}
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/signin"
+                className="rounded-lg border border-[#245c3a] px-3 py-2 text-[#245c3a]"
+              >
+                সাইন ইন
+              </Link>
+
+              <Link
+                href="/signup"
+                className="rounded-lg bg-[#245c3a] px-3 py-2 text-white hover:bg-[#19472c]"
+              >
+                সাইন আপ
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
@@ -207,18 +217,25 @@ export default function Navbar() {
           <>
             <style jsx>{`
               @keyframes bazarTicker {
-                from { transform: translateX(0); }
-                to { transform: translateX(-50%); }
+                from {
+                  transform: translateX(0);
+                }
+                to {
+                  transform: translateX(-50%);
+                }
               }
+
               .bazar-ticker {
                 display: flex;
                 width: max-content;
                 animation: bazarTicker 45s linear infinite;
               }
+
               .bazar-ticker:hover {
                 animation-play-state: paused;
               }
             `}</style>
+
             <div className="bazar-ticker">
               {[0, 1].map((copy) => (
                 <div
@@ -236,10 +253,14 @@ export default function Navbar() {
                         href={`/product/${product.slug}`}
                         className="whitespace-nowrap text-sm"
                       >
-                        <span>{product.image} {product.nameBn}</span>
+                        <span>
+                          {product.image} {product.nameBn}
+                        </span>
+
                         <span className="mx-2 font-bold">
                           ৳{taka(Number(product.today) || 0)}/{product.unit}
                         </span>
+
                         <span
                           className={
                             up
