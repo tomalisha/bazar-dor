@@ -15,14 +15,13 @@ const pool = new Pool({
 export const auth = betterAuth({
   database: pool,
 
-  baseURL:
-    process.env.BETTER_AUTH_URL ||
-    "https://bazar-957nppw3s-kat-4a6e.vercel.app",
+  baseURL: process.env.BETTER_AUTH_URL,
 
   secret: process.env.BETTER_AUTH_SECRET,
 
   trustedOrigins: [
     "http://localhost:3000",
+    "https://bazar-brurh8n6v-kat-4a6e.vercel.app",
     "https://bazar-957nppw3s-kat-4a6e.vercel.app",
     "https://bazar-dor-iota-seven.vercel.app",
   ],
