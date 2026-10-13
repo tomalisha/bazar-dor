@@ -17,12 +17,13 @@ export const auth = betterAuth({
 
   baseURL:
     process.env.BETTER_AUTH_URL ||
-    "https://bazar-dor-iota-seven.vercel.app",
+    "https://bazar-957nppw3s-kat-4a6e.vercel.app",
 
   secret: process.env.BETTER_AUTH_SECRET,
 
   trustedOrigins: [
     "http://localhost:3000",
+    "https://bazar-957nppw3s-kat-4a6e.vercel.app",
     "https://bazar-dor-iota-seven.vercel.app",
   ],
 
@@ -32,18 +33,17 @@ export const auth = betterAuth({
   },
 
   account: {
-  accountLinking: {
-    enabled: true,
-    trustedProviders: ["google", "github"],
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["google", "github"],
+    },
   },
-},
 
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     },
-
     github: {
       clientId: process.env.GITHUB_CLIENT_ID || "",
       clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
