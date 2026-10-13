@@ -14,15 +14,39 @@ const pool = new Pool({
 
 export const auth = betterAuth({
   database: pool,
+
   baseURL:
     process.env.BETTER_AUTH_URL ||
     "https://bazar-dor-iota-seven.vercel.app",
+
   secret: process.env.BETTER_AUTH_SECRET,
+
   trustedOrigins: [
+    "http://localhost:3000",
     "https://bazar-dor-iota-seven.vercel.app",
   ],
+
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
+  },
+
+  account: {
+  accountLinking: {
+    enabled: true,
+    trustedProviders: ["google", "github"],
+  },
+},
+
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+    },
+
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID || "",
+      clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
+    },
   },
 });
